@@ -17,6 +17,12 @@ import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
 import io.flutter.plugin.common.BasicMessageChannel;
 import io.flutter.plugin.common.JSONMessageCodec;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
 
 public class SystemAlertWindowPlugin implements FlutterPlugin, ActivityAware, BasicMessageChannel.MessageHandler {
 
@@ -99,7 +105,7 @@ public class SystemAlertWindowPlugin implements FlutterPlugin, ActivityAware, Ba
         } else {
             context.startService(serviceIntent);
         }
-    }    
+    }
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
@@ -123,8 +129,11 @@ public class SystemAlertWindowPlugin implements FlutterPlugin, ActivityAware, Ba
     @Override
     public void onAttachedToActivity(@NonNull ActivityPluginBinding activityPluginBinding) {
         LogUtils.getInstance().d(TAG, "Initializing on attached to activity");
+
+        // Existing code...
         if (methodCallHandler != null) {
             methodCallHandler.setActivity(activityPluginBinding.getActivity());
+
             try {
                 FlutterEngine existingEngine = FlutterEngineCache.getInstance().get(Constants.FLUTTER_CACHE_ENGINE);
                 if (existingEngine == null) {
@@ -138,8 +147,16 @@ public class SystemAlertWindowPlugin implements FlutterPlugin, ActivityAware, Ba
             } catch (Exception e) {
                 LogUtils.getInstance().e(TAG, "Error initializing FlutterEngine: " + e.getMessage());
             }
-
         }
+
+        // 👉 Add your foreground service start logic here:
+        Intent serviceIntent = new Intent(context, SystemAlertWindowService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent);
+        } else {
+            context.startService(serviceIntent);
+        }
+
         this.pluginBinding = activityPluginBinding;
         registerListeners();
     }
