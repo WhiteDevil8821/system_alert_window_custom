@@ -29,7 +29,6 @@ public class SystemAlertWindowPlugin implements FlutterPlugin, ActivityAware, Ba
     private Context context;
     private BasicMessageChannel<Object> messenger;
 
-
     public SystemAlertWindowPlugin() {
         LogUtils.getInstance().d(TAG, "Initializing the constructor");
         isInitialized = false;
@@ -70,6 +69,38 @@ public class SystemAlertWindowPlugin implements FlutterPlugin, ActivityAware, Ba
         isInitialized = false;
     }
 
+    private void startForegroundNotification() {
+        String CHANNEL_ID = "system_alert_channel";
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "System Alert Window Service",
+                    NotificationManager.IMPORTANCE_LOW);
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
+            }
+        }
+
+        Notification notification = new Notification.Builder(this, CHANNEL_ID)
+                .setContentTitle("Overlay Running")
+                .setContentText("The overlay window is active")
+                .setSmallIcon(R.drawable.ic_launcher) // You can replace with a custom small icon
+                .build();
+
+        startForeground(1001, notification);
+    }
+
+    private void startForegroundOverlayService() {
+        Intent serviceIntent = new Intent(context, SystemAlertWindowService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent);
+        } else {
+            context.startService(serviceIntent);
+        }
+    }    
+
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
         this.context = flutterPluginBinding.getApplicationContext();
@@ -96,7 +127,7 @@ public class SystemAlertWindowPlugin implements FlutterPlugin, ActivityAware, Ba
             methodCallHandler.setActivity(activityPluginBinding.getActivity());
             try {
                 FlutterEngine existingEngine = FlutterEngineCache.getInstance().get(Constants.FLUTTER_CACHE_ENGINE);
-                if(existingEngine==null){
+                if (existingEngine == null) {
                     FlutterEngineGroup enn = new FlutterEngineGroup(context);
                     DartExecutor.DartEntrypoint dEntry = new DartExecutor.DartEntrypoint(
                             FlutterInjector.instance().flutterLoader().findAppBundlePath(),
@@ -140,4 +171,12 @@ public class SystemAlertWindowPlugin implements FlutterPlugin, ActivityAware, Ba
                 Constants.MESSAGE_CHANNEL, JSONMessageCodec.INSTANCE);
         overlayMessageChannel.send(message, reply);
     }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        startForegroundNotification(); // <-- Add this line
+        // Your existing overlay code continues...
+        return START_STICKY;
+    }
+
 }
