@@ -13,6 +13,15 @@ import androidx.core.app.NotificationCompat;
 public class SystemAlertWindowService extends Service {
     private static final String CHANNEL_ID = "overlay_channel";
 
+    private void startForegroundOverlayService() {
+        Intent serviceIntent = new Intent(context, SystemAlertWindowService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent);
+        } else {
+            context.startService(serviceIntent);
+        }
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -53,5 +62,12 @@ public class SystemAlertWindowService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        startForegroundNotification(); // <-- Add this line
+        // Your existing overlay code continues...
+        return START_STICKY;
     }
 }
